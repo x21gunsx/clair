@@ -267,6 +267,8 @@ The location of this Indexer is required.
 A time.ParseDuration parsable string
 
 The frequency at which the notifier will query at Matcher for Update Operations.
+If a value smaller then 1 second is provided it will be replaced with the
+default 5 second poll interval.
 ```
 
 #### &emsp;delivery_interval: ""
@@ -275,6 +277,8 @@ A time.ParseDuration parsable string
 
 The frequency at which the notifier attempt delivery of created or previously failed
 notifications
+If a value smaller then 1 second is provided it will be replaced with the
+default 5 second delivery interval.
 ```
 
 #### &emsp;disable_summary: false
