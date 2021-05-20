@@ -178,6 +178,44 @@ func remoteClient(ctx context.Context, cfg *config.Config, claim jwt.Claims, add
 	return client.NewHTTP(ctx, client.WithAddr(addr), client.WithClient(c))
 }
 
+// hackMatchers hacks the matcher selection process for
+// a red hat related issue.
+//
+// you should never see this code on a non "red-hat" prefixed
+// branch
+//
+// Recursive search for one or more "crda" entries and cut them
+// out of any passed in array. Follow the normal tri-state logic
+// of specifying defaults.
+func hackMatchers(names []string) []string {
+	if names == nil {
+		return []string{
+			"alpine",
+			"aws",
+			"debian",
+			"oracle",
+			"photon",
+			"python",
+			"rhel",
+			"suse",
+			"ubuntu",
+		}
+	}
+
+	index := -1
+	for i, name := range names {
+		if name == "crda" {
+			index = i
+		}
+	}
+
+	if index != -1 {
+		names = append(names[:index], names[index+1:]...)
+		names = hackMatchers(names)
+	}
+	return names
+}
+
 func localMatcher(ctx context.Context, cfg *config.Config) (matcher.Service, error) {
 	const msg = "failed to initialize matcher: "
 	mkErr := func(err error) *clairerror.ErrNotInitialized {
@@ -205,6 +243,7 @@ func localMatcher(ctx context.Context, cfg *config.Config) (matcher.Service, err
 	for name, node := range cfg.Matchers.Config {
 		matcherConfigs[name] = node.Decode
 	}
+
 	s, err := libvuln.New(ctx, &libvuln.Opts{
 		MaxConnPool:     int32(cfg.Matcher.MaxConnPool),
 		ConnString:      cfg.Matcher.ConnString,
@@ -213,7 +252,7 @@ func localMatcher(ctx context.Context, cfg *config.Config) (matcher.Service, err
 		UpdateInterval:  cfg.Matcher.Period,
 		UpdaterConfigs:  updaterConfigs,
 		UpdateRetention: cfg.Matcher.UpdateRetention,
-		MatcherNames:    cfg.Matchers.Names,
+		MatcherNames:    hackMatchers(cfg.Matchers.Names),
 		MatcherConfigs:  matcherConfigs,
 		Client:          cl,
 	})
